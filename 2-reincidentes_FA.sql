@@ -1,6 +1,6 @@
-USE [Indicadores_FA]
+USE [indicadores_FA]
 GO
-/****** Object:  StoredProcedure [dbo].[reincidentes_FA]    Script Date: 27/02/2024 09:07:18 a. m. ******/
+/****** Object:  StoredProcedure [dbo].[reincidentes_FA]    Script Date: 17/03/2024 09:35:42 a. m. ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -8,6 +8,7 @@ GO
 
 ALTER PROCEDURE [dbo].[reincidentes_FA]
 @fecini  date,
+@fecfin date,
 @idestad int
 WITH EXEC AS CALLER
 AS
@@ -16,17 +17,18 @@ BEGIN
 
 --Modificacion 05/03/2024
 --Autor: JLCR
---Descripción: se cambia el havin count(1) por havyn sum()
+--Descripción: se cambia el having count(1) por having sum()
 /*
-declare @fecini date;
+declare @fecini date, @fecfin date;
 declare @idestad int, @listar int;
 
-set @fecini = '2023-10-01';
-set @idestad = 28;
-*/
+set @fecini = '2020-10-01';
+set @fecfin = '2024-02-23';
+set @idestad = 11;
 
 DECLARE @fecfin date;
 SET @FecFin = convert(date, GETDATE() - 1);
+*/
 
 IF OBJECT_ID(N'tempdb.dbo.#TemRegTotEdo', N'U') IS NOT NULL  
    DROP TABLE #TemRegTotEdo;
@@ -70,7 +72,7 @@ SELECT ROW_NUMBER() OVER(ORDER BY d.id_detenido ASC) AS reg, e.NOMBRE entidad, m
             REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(VARCHAR(max),rtrim(lTRIM(replace(replace(replace(replace(replace(UPPER(b.apellido_paterno 
                 + ' ' + b.apellido_materno  + ' ' + b.Nombre)
                 , 'Á', 'A' ), 'É', 'E' ), 'Í', 'I' ), 'Ó', 'O' ), 'Ú', 'U' )))),CHAR(10),''),CHAR(9),' '),CHAR(13),''),'"',' ')
-        from RNDetenciones_FA.dbo.oficiales_fa b 
+        from RNDetenciones_FA.dbo.oficiales_fa b WITH (NOLOCK)
         where b.id_detencion = d.id_detencion
             FOR XML PATH ('')),
         1,2, '')) oficial
@@ -79,7 +81,7 @@ SELECT ROW_NUMBER() OVER(ORDER BY d.id_detenido ASC) AS reg, e.NOMBRE entidad, m
             REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(VARCHAR(max),rtrim(lTRIM(replace(replace(replace(replace(replace(UPPER(b.paterno 
                 + ' ' + b.materno  + ' ' + b.Nombre)
                 , 'Á', 'A' ), 'É', 'E' ), 'Í', 'I' ), 'Ó', 'O' ), 'Ú', 'U' )))),CHAR(10),''),CHAR(9),' '),CHAR(13),''),'"',' ')
-        from RNDetenciones_FA.dbo.oficiales_PSP_fa b 
+        from RNDetenciones_FA.dbo.oficiales_PSP_fa b WITH (NOLOCK)
         where b.id_detencion = d.id_detencion
             FOR XML PATH ('')),
         1,2, '')) oficial_psp
@@ -96,7 +98,7 @@ SELECT ROW_NUMBER() OVER(ORDER BY d.id_detenido ASC) AS reg, e.NOMBRE entidad, m
 , dc.fecha_nacimiento Fec_nac_dc
 , (SELECT STUFF(
     (SELECT ', ' + ctd1.tipo_delito
-            FROM RNDetenciones_FA.dbo.traslados_delitos_fa td1  
+            FROM RNDetenciones_FA.dbo.traslados_delitos_fa td1 WITH (NOLOCK) 
             LEFT JOIN RNDetenciones_FA.dbo.cat_subtipo_delito_fa csd1 ON td1.id_subtipo_delito = csd1.id_subtipo_delito 
             LEFT JOIN RNDetenciones_FA.dbo.cat_tipo_delito_fa ctd1 ON ctd1.id_tipo_delito = td1.id_tipo_delito AND ctd1.id_bien != 0 
             LEFT JOIN RNDetenciones_FA.dbo.cat_bienes_juridicos_fa cbj1 ON cbj1.id_bien = td1.id_bien 
@@ -105,7 +107,7 @@ SELECT ROW_NUMBER() OVER(ORDER BY d.id_detenido ASC) AS reg, e.NOMBRE entidad, m
         1,2, '')) delitos
 , (SELECT STUFF(
     (SELECT ', ' + cbj1.bien_juridico
-            FROM RNDetenciones_FA.dbo.traslados_delitos_fa td1  
+            FROM RNDetenciones_FA.dbo.traslados_delitos_fa td1 WITH (NOLOCK)  
             LEFT JOIN RNDetenciones_FA.dbo.cat_subtipo_delito_fa csd1 ON td1.id_subtipo_delito = csd1.id_subtipo_delito 
             LEFT JOIN RNDetenciones_FA.dbo.cat_tipo_delito_fa ctd1 ON ctd1.id_tipo_delito = td1.id_tipo_delito AND ctd1.id_bien != 0 
             LEFT JOIN RNDetenciones_FA.dbo.cat_bienes_juridicos_fa cbj1 ON cbj1.id_bien = td1.id_bien 
@@ -114,7 +116,7 @@ SELECT ROW_NUMBER() OVER(ORDER BY d.id_detenido ASC) AS reg, e.NOMBRE entidad, m
         1,2, '')) bien_juridico
 , (SELECT STUFF(
     (SELECT ', ' + REPLACE(REPLACE(REPLACE(REPLACE(CONVERT(VARCHAR(max),td1.especifique_delito),CHAR(10),''),CHAR(9),' '),CHAR(13),''),'"',' ') 
-            FROM RNDetenciones_FA.dbo.traslados_delitos_fa td1  
+            FROM RNDetenciones_FA.dbo.traslados_delitos_fa td1 WITH (NOLOCK)  
             LEFT JOIN RNDetenciones_FA.dbo.cat_subtipo_delito_fa csd1 ON td1.id_subtipo_delito = csd1.id_subtipo_delito 
             LEFT JOIN RNDetenciones_FA.dbo.cat_tipo_delito_fa ctd1 ON ctd1.id_tipo_delito = td1.id_tipo_delito AND ctd1.id_bien != 0 
             LEFT JOIN RNDetenciones_FA.dbo.cat_bienes_juridicos_fa cbj1 ON cbj1.id_bien = td1.id_bien 
@@ -122,12 +124,12 @@ SELECT ROW_NUMBER() OVER(ORDER BY d.id_detenido ASC) AS reg, e.NOMBRE entidad, m
             FOR XML PATH ('')),
         1,2, '')) especifique_delito
 into #Temregtotedo
-FROM RNDetenciones_FA.dbo.detenidos_fa d 
-inner join RNDetenciones_FA.dbo.detenciones_fa dt on dt.id_detencion=d.id_detencion
+FROM RNDetenciones_FA.dbo.detenidos_fa d WITH (NOLOCK)
+inner join RNDetenciones_FA.dbo.detenciones_fa dt WITH (NOLOCK) on dt.id_detencion=d.id_detencion
 inner join GeoDirecciones.dbo.ENTIDAD e on e.IDENTIDAD = dt.id_entidad
-left join RNDetenciones_FA.dbo.puesta_disposiciones_fa p on p.id_detenido=d.id_detenido and p.es_borrado = 0 
-left join RNDetenciones_FA.dbo.detenidos_datoscomplementarios_fa dc on dc.id_puesta_disposicion=p.id_puesta_disposicion
-left join RNDetenciones_FA.dbo.traslados_fa tr on tr.id_detenido_complemento = dc.id_detenido_complemento and tr.es_activo = 1
+left join RNDetenciones_FA.dbo.puesta_disposiciones_fa p WITH (NOLOCK) on p.id_detenido=d.id_detenido and p.es_borrado = 0 
+left join RNDetenciones_FA.dbo.detenidos_datoscomplementarios_fa dc WITH (NOLOCK) on dc.id_puesta_disposicion=p.id_puesta_disposicion
+left join RNDetenciones_FA.dbo.traslados_fa tr WITH (NOLOCK) on tr.id_detenido_complemento = dc.id_detenido_complemento and tr.es_activo = 1
 left join RNDetenciones_FA.dbo.cat_tipos_libertades_fa ctl on ctl.id_tipo_libertad = tr.id_tipo_libertad
 inner join GeoDirecciones.dbo.MUNICIPIO m on m.IDENTIDAD = dt.id_entidad and m.IDMPIO = dt.id_municipio
 inner join RNDetenciones_FA.dbo.cat_estatus_detenidos_fa cedf on cedf.id_estatus_detenido = d.id_estatus_detenido
@@ -163,6 +165,7 @@ from #regtotedo
 group by nombre, apellido_paterno ,apellido_materno, isnull(CAST(fecha_nacimiento AS DATE), ''), isnull(CAST(fecha_detencion AS DATE), '')
 having count(1) > 1
 order by 2, 3, 1;
+
 
 --Tomar registro unico
     select max(folio_detenido) folio_detenido
